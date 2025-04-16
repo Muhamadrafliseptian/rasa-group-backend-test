@@ -23,17 +23,34 @@ exports.addBookStock = async (req, res) => {
 };
 
 exports.getAllInventory = async (req, res) => {
+  const { page = 1, limit = 10, search = "" } = req.query;
+
   try {
-    const result = await pool.query(
-      `SELECT i.*, b.title 
-       FROM inventory i 
-       JOIN books b ON i.book_id = b.id 
-       ORDER BY i.id DESC`
-    );
+    const offset = (page - 1) * limit;
+
+    const query = `
+      SELECT i.*, b.title 
+      FROM inventory i 
+      JOIN books b ON i.book_id = b.id 
+      WHERE b.title ILIKE $1
+      ORDER BY i.id DESC
+      LIMIT $2 OFFSET $3
+    `;
+    const result = await pool.query(query, [`%${search}%`, limit, offset]);
+
+    const totalQuery = `
+      SELECT COUNT(*) AS total 
+      FROM inventory i 
+      JOIN books b ON i.book_id = b.id 
+      WHERE b.title ILIKE $1
+    `;
+    const totalResult = await pool.query(totalQuery, [`%${search}%`]);
+
     res.status(200).json({
       statusCode: 200,
       message: 'Data inventaris berhasil diambil',
-      data: result.rows
+      data: result.rows,
+      total: parseInt(totalResult.rows[0].total)
     });
   } catch (err) {
     res.status(500).json({

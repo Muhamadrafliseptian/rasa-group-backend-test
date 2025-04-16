@@ -5,6 +5,7 @@ exports.getAllStudents = async (req, res) => {
 
   try {
     const offset = (page - 1) * limit;
+
     const query = `
       SELECT * FROM students
       WHERE name ILIKE $1 OR nim ILIKE $1
@@ -13,10 +14,17 @@ exports.getAllStudents = async (req, res) => {
     `;
     const result = await pool.query(query, [`%${search}%`, limit, offset]);
 
+    const totalQuery = `
+      SELECT COUNT(*) AS total FROM students
+      WHERE name ILIKE $1 OR nim ILIKE $1
+    `;
+    const totalResult = await pool.query(totalQuery, [`%${search}%`]);
+
     res.status(200).json({
       statusCode: 200,
       message: true,
       data: result.rows,
+      total: parseInt(totalResult.rows[0].total),
     });
   } catch (err) {
     res.status(500).json({
@@ -26,6 +34,7 @@ exports.getAllStudents = async (req, res) => {
     });
   }
 };
+
 
 exports.getStudentById = async (req, res) => {
   const { id } = req.params;

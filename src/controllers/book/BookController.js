@@ -2,25 +2,37 @@ const pool = require("../../models/db");
 
 exports.getAllBooks = async (req, res) => {
   const { page = 1, limit = 10, search = "" } = req.query;
+
   try {
     const offset = (page - 1) * limit;
+
     const query = `
-    SELECT * FROM books
-    WHERE 
-      title ILIKE $1 OR
-      author ILIKE $1 OR
-      publisher ILIKE $1 OR
-      isbn ILIKE $1
-    ORDER BY id DESC
-    LIMIT $2 OFFSET $3;
-    
+      SELECT * FROM books
+      WHERE 
+        title ILIKE $1 OR
+        author ILIKE $1 OR
+        publisher ILIKE $1 OR
+        isbn ILIKE $1
+      ORDER BY id DESC
+      LIMIT $2 OFFSET $3;
     `;
     const result = await pool.query(query, [`%${search}%`, limit, offset]);
+
+    const totalQuery = `
+      SELECT COUNT(*) AS total FROM books
+      WHERE 
+        title ILIKE $1 OR
+        author ILIKE $1 OR
+        publisher ILIKE $1 OR
+        isbn ILIKE $1
+    `;
+    const totalResult = await pool.query(totalQuery, [`%${search}%`]);
 
     res.status(200).json({
       statusCode: 200,
       message: true,
       data: result.rows,
+      total: parseInt(totalResult.rows[0].total),
     });
   } catch (err) {
     res.status(500).json({
